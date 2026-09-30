@@ -30,6 +30,9 @@ function Header() {
           {mostrarRelogio ? "Esconder relógio" : "Mostrar relógio"}
         </button>
       </div>
+      <h1 className="text-2xl font-bold font-display">
+DevLife <span className="text-emerald-400">Dashboard</span>
+</h1>
     </header>
   );
 }

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import Header from "./components/Header";
 import StatusRede from "./components/StatusRede";
 import InstallPrompt from "./components/InstallPrompt";
+import NotificationPrompt from "./components/NotificationPrompt";
 import TaskCard from "./components/TaskCard";
 import TaskForm from "./components/TaskForm";
 
@@ -91,11 +92,11 @@ function App() {
 
       <Header />
 
-      {}
       <StatusRede />
 
-      {}
       <InstallPrompt />
+
+      <NotificationPrompt />
 
       <div aria-live="polite" role="status" className="sr-only">
         {anuncio}
@@ -152,5 +153,67 @@ function App() {
     </div>
   );
 }
+import { notificarLocal } from "./notifications";
+function alternarConcluida(id) {
+const tarefa = tarefas.find((t) => t.id === id);
+const vaiConcluir = !tarefa.concluida;
+const status = vaiConcluir ? "concluída" : "pendente";
+setTarefas((atual) =>
+
+atual.map((t) => (t.id === id ? { ...t, concluida: !t.concluida } : t))
+);
+setAnuncio(`Tarefa "${tarefa.titulo}" marcada como ${status}.`);
+// Gatilho real: tarefa importante concluída.
+if (vaiConcluir && tarefa.prioridade === "alta") {
+notificarLocal("Boa! Tarefa de alta prioridade concluída 🎉", {
+body: tarefa.titulo,
+});
+}
+}
+
+import { agendarSincronizacao } from "./backgroundSync";
+function avisarMudancaOffline() {
+if (!navigator.onLine) {
+agendarSincronizacao("sincronizar-tarefas");
+setAnuncio((atual) => `${atual} A sincronização ocorrerá quando a conexão voltar.`);
+}
+}
+function avisarMudancaOffline() {
+  if (!navigator.onLine) {
+    setAnuncio("Alteração salva no dispositivo. Você está offline.");
+  }
+}
+
+function adicionarTarefa(novaTarefa) {
+  setTarefas((atual) => [
+    ...atual,
+    { ...novaTarefa, id: Date.now(), concluida: false },
+  ]);
+
+  setAnuncio(`Tarefa "${novaTarefa.titulo}" adicionada.`);
+
+  avisarMudancaOffline();
+}
+
+function removerTarefa(id) {
+  const tarefa = tarefas.find((t) => t.id === id);
+
+  setTarefas((atual) => atual.filter((t) => t.id !== id));
+
+  setAnuncio(`Tarefa "${tarefa.titulo}" removida.`);
+
+  avisarMudancaOffline();
+}
+
+useEffect(() => {
+if (!("serviceWorker" in navigator)) return;
+function aoReceberMensagem(evento) {
+if (evento.data?.tipo === "SINCRONIZADO") {
+setAnuncio("🔄 Sincronização em segundo plano concluída.");
+}
+}
+navigator.serviceWorker.addEventListener("message", aoReceberMensagem);
+return () => navigator.serviceWorker.removeEventListener("message", aoReceberMensagem);
+}, []);
 
 export default App;
